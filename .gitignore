@@ -1,0 +1,25 @@
+# الاعتماديات (Dependencies)
+node_modules/
+package-lock.json
+yarn.lock
+
+# ملفات البناء (Build outputs)
+dist/
+build/
+.env
+.env.local
+.env.*.local
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+
+# ملفات المحررين
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# سجلات
+*.log
+npm-debug.log*
