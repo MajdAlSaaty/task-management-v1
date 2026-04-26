@@ -13,6 +13,7 @@ const Scheduler = () => {
   const [scheduling, setScheduling] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateValue());
 
+
   const fetchSlots = async () => {
     try {
       const response = await api.get(`/slots?date=${selectedDate}`);
@@ -22,20 +23,10 @@ const Scheduler = () => {
 
   useEffect(() => {
     let active = true;
-
     api.get(`/slots?date=${selectedDate}`)
-      .then((response) => {
-        if (active) {
-          setSlots(response.data.data || response.data);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-
-    return () => {
-      active = false;
-    };
+      .then((response) => { if (active) setSlots(response.data.data || response.data); })
+      .catch(console.error);
+    return () => { active = false; };
   }, [selectedDate]);
 
   const pendingTasks = tasks.filter(t => !t.completed && t.status !== 'completed');
@@ -46,7 +37,7 @@ const Scheduler = () => {
       try { await autoScheduleTask(task.id); } catch (err) { console.error(err); }
     }
     setScheduling(false);
-    fetchSlots();
+    fetchSlots(); 
     alert('تمت محاولة جدولة جميع المهام المعلقة');
   };
 
