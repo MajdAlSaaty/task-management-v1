@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useTasks } from '../contexts/TaskContext';
 
+<<<<<<< HEAD:src/pages/Tasks.jsx
 // Helper: Get today's date in YYYY-MM-DD format (local timezone)
+=======
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
 const getTodayDate = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -10,7 +13,10 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+<<<<<<< HEAD:src/pages/Tasks.jsx
 // Helper: Get current time in HH:MM format (local timezone)
+=======
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
 const getCurrentTime = () => {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
@@ -21,12 +27,17 @@ const getCurrentTime = () => {
 const Tasks = () => {
   const { tasks, addTask, updateTask, deleteTask, toggleComplete, autoScheduleTask, loading } = useTasks();
   const [newTask, setNewTask] = useState({
+<<<<<<< HEAD:src/pages/Tasks.jsx
     title: '',
     description: '',
     dueDate: getTodayDate(),
     dueTime: '23:59',
     duration: 30,
     priority: 'متوسطة',
+=======
+    title: '', description: '', dueDate: getTodayDate(), dueTime: '23:59',
+    duration: 30, priority: 'متوسطة',
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
   });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -40,12 +51,17 @@ const Tasks = () => {
     try {
       await addTask(newTask);
       setNewTask({
+<<<<<<< HEAD:src/pages/Tasks.jsx
         title: '',
         description: '',
         dueDate: getTodayDate(),
         dueTime: '23:59',
         duration: 30,
         priority: 'متوسطة',
+=======
+        title: '', description: '', dueDate: getTodayDate(), dueTime: '23:59',
+        duration: 30, priority: 'متوسطة',
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
       });
       setError('');
     } catch {
@@ -59,7 +75,10 @@ const Tasks = () => {
       ...task,
       dueDate: task.dueDate || '',
       dueTime: task.dueTime || '23:59',
+<<<<<<< HEAD:src/pages/Tasks.jsx
       description: task.description || '',
+=======
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
     });
   };
 
@@ -85,11 +104,7 @@ const Tasks = () => {
   };
 
   const handleToggle = async (task) => {
-    try {
-      await toggleComplete(task.id, !task.completed);
-    } catch {
-      setError('حدث خطأ أثناء التحديث');
-    }
+    try { await toggleComplete(task.id, !task.completed); } catch { setError('حدث خطأ أثناء التحديث'); }
   };
 
   const handleAutoSchedule = async (taskId) => {
@@ -143,6 +158,7 @@ const Tasks = () => {
       <div className="card">
         <h3 className="card-title">➕ إضافة مهمة جديدة</h3>
         <form onSubmit={handleAdd}>
+<<<<<<< HEAD:src/pages/Tasks.jsx
           <div className="form-group">
             <label>العنوان *</label>
             <input
@@ -208,6 +224,19 @@ const Tasks = () => {
               <option value="منخفضة">منخفضة</option>
             </select>
           </div>
+=======
+          <div className="form-group"><label>العنوان *</label><input type="text" value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})} className="form-control" required /></div>
+          <div className="form-group"><label>الوصف</label><textarea value={newTask.description} onChange={(e) => setNewTask({...newTask, description: e.target.value})} className="form-control" rows="2" /></div>
+          <div className="form-group">
+            <label>الموعد النهائي</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input type="date" value={newTask.dueDate} min={getTodayDate()} onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})} className="form-control" style={{ flex: 2 }} required />
+              <input type="time" value={newTask.dueTime} min={newTask.dueDate === getTodayDate() ? getCurrentTime() : undefined} onChange={(e) => setNewTask({...newTask, dueTime: e.target.value})} className="form-control" style={{ flex: 1 }} required />
+            </div>
+          </div>
+          <div className="form-group"><label>المدة (دقائق)</label><input type="number" value={newTask.duration} onChange={(e) => setNewTask({...newTask, duration: Number(e.target.value)})} className="form-control" min="5" step="5" /></div>
+          <div className="form-group"><label>الأولوية</label><select value={newTask.priority} onChange={(e) => setNewTask({...newTask, priority: e.target.value})} className="form-control"><option value="عالية">عالية</option><option value="متوسطة">متوسطة</option><option value="منخفضة">منخفضة</option></select></div>
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
           <button type="submit" className="btn btn-primary">إضافة</button>
         </form>
       </div>
@@ -222,6 +251,7 @@ const Tasks = () => {
               <li key={task.id} style={{ padding: '1rem 0', borderBottom: '1px solid var(--gray-200)' }}>
                 {editingId === task.id ? (
                   <div>
+<<<<<<< HEAD:src/pages/Tasks.jsx
                     <div className="form-group">
                       <input
                         type="text"
@@ -282,6 +312,19 @@ const Tasks = () => {
                         step="5"
                       />
                     </div>
+=======
+                    <div className="form-group"><input type="text" value={editForm.title} onChange={(e) => setEditForm({...editForm, title: e.target.value})} className="form-control" /></div>
+                    <div className="form-group"><textarea value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} className="form-control" rows="2" /></div>
+                    <div className="form-group">
+                      <label>الموعد النهائي</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input type="date" value={editForm.dueDate || ''} min={getTodayDate()} onChange={(e) => setEditForm({...editForm, dueDate: e.target.value})} className="form-control" style={{ flex: 2 }} />
+                        <input type="time" value={editForm.dueTime || '23:59'} min={editForm.dueDate === getTodayDate() ? getCurrentTime() : undefined} onChange={(e) => setEditForm({...editForm, dueTime: e.target.value})} className="form-control" style={{ flex: 1 }} />
+                      </div>
+                    </div>
+                    <div className="form-group"><label>الأولوية</label><select value={editForm.priority} onChange={(e) => setEditForm({...editForm, priority: e.target.value})} className="form-control"><option value="عالية">عالية</option><option value="متوسطة">متوسطة</option><option value="منخفضة">منخفضة</option></select></div>
+                    <div className="form-group"><label>المدة (دقائق)</label><input type="number" value={editForm.duration} onChange={(e) => setEditForm({...editForm, duration: Number(e.target.value)})} className="form-control" min="5" step="5" /></div>
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
                     <div>
                       <button onClick={() => handleUpdate(task.id)} className="btn btn-primary" style={{ marginLeft: '0.5rem' }}>حفظ</button>
                       <button onClick={() => setEditingId(null)} className="btn btn-secondary">إلغاء</button>
@@ -304,11 +347,15 @@ const Tasks = () => {
                           <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>{task.description}</div>
                         )}
                         <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+<<<<<<< HEAD:src/pages/Tasks.jsx
                           {task.dueDate && (
                             <span>
                               📅 {task.dueDate} {task.dueTime && task.dueTime !== '23:59' ? `⏰ ${task.dueTime}` : ''} | 
                             </span>
                           )}
+=======
+                          {task.dueDate && <span>📅 {task.dueDate} {task.dueTime && task.dueTime !== '23:59' ? `⏰ ${task.dueTime}` : ''} | </span>}
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
                           <span>⏱️ {task.duration} دقيقة | </span>
                           <span>⭐ {task.priorityLabel}</span>
                         </div>
