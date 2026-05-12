@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useTasks } from '../contexts/TaskContext';
 
+<<<<<<< HEAD:src/pages/Tasks.jsx
+// Helper: Get today's date in YYYY-MM-DD format (local timezone)
+=======
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
 const getTodayDate = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -9,6 +13,10 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+<<<<<<< HEAD:src/pages/Tasks.jsx
+// Helper: Get current time in HH:MM format (local timezone)
+=======
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
 const getCurrentTime = () => {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
@@ -19,12 +27,23 @@ const getCurrentTime = () => {
 const Tasks = () => {
   const { tasks, addTask, updateTask, deleteTask, toggleComplete, autoScheduleTask, loading } = useTasks();
   const [newTask, setNewTask] = useState({
+<<<<<<< HEAD:src/pages/Tasks.jsx
+    title: '',
+    description: '',
+    dueDate: getTodayDate(),
+    dueTime: '23:59',
+    duration: 30,
+    priority: 'متوسطة',
+=======
     title: '', description: '', dueDate: getTodayDate(), dueTime: '23:59',
     duration: 30, priority: 'متوسطة',
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
   });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [error, setError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
+  const [scheduleMessage, setScheduleMessage] = useState('');
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -32,8 +51,17 @@ const Tasks = () => {
     try {
       await addTask(newTask);
       setNewTask({
+<<<<<<< HEAD:src/pages/Tasks.jsx
+        title: '',
+        description: '',
+        dueDate: getTodayDate(),
+        dueTime: '23:59',
+        duration: 30,
+        priority: 'متوسطة',
+=======
         title: '', description: '', dueDate: getTodayDate(), dueTime: '23:59',
         duration: 30, priority: 'متوسطة',
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
       });
       setError('');
     } catch {
@@ -47,6 +75,10 @@ const Tasks = () => {
       ...task,
       dueDate: task.dueDate || '',
       dueTime: task.dueTime || '23:59',
+<<<<<<< HEAD:src/pages/Tasks.jsx
+      description: task.description || '',
+=======
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
     });
   };
 
@@ -63,8 +95,11 @@ const Tasks = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('هل أنت متأكد من حذف المهمة؟')) {
-      try { await deleteTask(id); } catch { setError('حدث خطأ أثناء الحذف'); }
+    try {
+      await deleteTask(id);
+      setDeleteSuccess('🗑️ تم حذف المهمة بنجاح');
+    } catch (err) {
+      setError('❌ حدث خطأ أثناء الحذف');
     }
   };
 
@@ -73,11 +108,12 @@ const Tasks = () => {
   };
 
   const handleAutoSchedule = async (taskId) => {
+    setScheduleMessage('');
     try {
       await autoScheduleTask(taskId);
-      alert('تمت جدولة المهمة بنجاح');
+      setScheduleMessage('✅ تمت جدولة المهمة بنجاح');
     } catch (err) {
-      alert('فشل الجدولة: ' + (err.response?.data?.error || err.message));
+      setScheduleMessage('❌ فشل الجدولة: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -85,11 +121,110 @@ const Tasks = () => {
 
   return (
     <div>
-      {error && <div className="card" style={{ background: '#fee2e2', color: '#dc2626' }}>{error}</div>}
+      {error && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: '#fee2e2',
+          color: '#b91c1c'
+        }}>
+          {error}
+        </div>
+      )}
+      {deleteSuccess && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: '#fee2e2',
+          color: '#b91c1c'
+        }}>
+          {deleteSuccess}
+        </div>
+      )}
+      {scheduleMessage && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: scheduleMessage.startsWith('✅') ? '#dcfce7' : '#fee2e2',
+          color: scheduleMessage.startsWith('✅') ? '#166534' : '#b91c1c'
+        }}>
+          {scheduleMessage}
+        </div>
+      )}
 
       <div className="card">
         <h3 className="card-title">➕ إضافة مهمة جديدة</h3>
         <form onSubmit={handleAdd}>
+<<<<<<< HEAD:src/pages/Tasks.jsx
+          <div className="form-group">
+            <label>العنوان *</label>
+            <input
+              type="text"
+              value={newTask.title}
+              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+              className="form-control"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>الوصف</label>
+            <textarea
+              value={newTask.description}
+              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              className="form-control"
+              rows="2"
+            />
+          </div>
+          <div className="form-group">
+            <label>الموعد النهائي</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="date"
+                value={newTask.dueDate}
+                min={getTodayDate()}
+                onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                className="form-control"
+                style={{ flex: 2 }}
+                required
+              />
+              <input
+                type="time"
+                value={newTask.dueTime}
+                min={newTask.dueDate === getTodayDate() ? getCurrentTime() : undefined}
+                onChange={(e) => setNewTask({ ...newTask, dueTime: e.target.value })}
+                className="form-control"
+                style={{ flex: 1 }}
+                required
+              />
+            </div>
+          </div>
+          <div className="form-group">
+            <label>المدة (دقائق)</label>
+            <input
+              type="number"
+              value={newTask.duration}
+              onChange={(e) => setNewTask({ ...newTask, duration: Number(e.target.value) })}
+              className="form-control"
+              min="5"
+              step="5"
+            />
+          </div>
+          <div className="form-group">
+            <label>الأولوية</label>
+            <select
+              value={newTask.priority}
+              onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+              className="form-control"
+            >
+              <option value="عالية">عالية</option>
+              <option value="متوسطة">متوسطة</option>
+              <option value="منخفضة">منخفضة</option>
+            </select>
+          </div>
+=======
           <div className="form-group"><label>العنوان *</label><input type="text" value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})} className="form-control" required /></div>
           <div className="form-group"><label>الوصف</label><textarea value={newTask.description} onChange={(e) => setNewTask({...newTask, description: e.target.value})} className="form-control" rows="2" /></div>
           <div className="form-group">
@@ -101,18 +236,83 @@ const Tasks = () => {
           </div>
           <div className="form-group"><label>المدة (دقائق)</label><input type="number" value={newTask.duration} onChange={(e) => setNewTask({...newTask, duration: Number(e.target.value)})} className="form-control" min="5" step="5" /></div>
           <div className="form-group"><label>الأولوية</label><select value={newTask.priority} onChange={(e) => setNewTask({...newTask, priority: e.target.value})} className="form-control"><option value="عالية">عالية</option><option value="متوسطة">متوسطة</option><option value="منخفضة">منخفضة</option></select></div>
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
           <button type="submit" className="btn btn-primary">إضافة</button>
         </form>
       </div>
 
       <div className="card">
         <h3 className="card-title">📝 قائمة المهام</h3>
-        {tasks.length === 0 ? <p>لا توجد مهام. أضف مهمة جديدة!</p> : (
+        {tasks.length === 0 ? (
+          <p>لا توجد مهام. أضف مهمة جديدة!</p>
+        ) : (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {tasks.map(task => (
               <li key={task.id} style={{ padding: '1rem 0', borderBottom: '1px solid var(--gray-200)' }}>
                 {editingId === task.id ? (
                   <div>
+<<<<<<< HEAD:src/pages/Tasks.jsx
+                    <div className="form-group">
+                      <input
+                        type="text"
+                        value={editForm.title}
+                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                        className="form-control"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <textarea
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        className="form-control"
+                        rows="2"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>الموعد النهائي</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          type="date"
+                          value={editForm.dueDate || ''}
+                          min={getTodayDate()}
+                          onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                          className="form-control"
+                          style={{ flex: 2 }}
+                        />
+                        <input
+                          type="time"
+                          value={editForm.dueTime || '23:59'}
+                          min={editForm.dueDate === getTodayDate() ? getCurrentTime() : undefined}
+                          onChange={(e) => setEditForm({ ...editForm, dueTime: e.target.value })}
+                          className="form-control"
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>الأولوية</label>
+                      <select
+                        value={editForm.priority}
+                        onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                        className="form-control"
+                      >
+                        <option value="عالية">عالية</option>
+                        <option value="متوسطة">متوسطة</option>
+                        <option value="منخفضة">منخفضة</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>المدة (دقائق)</label>
+                      <input
+                        type="number"
+                        value={editForm.duration}
+                        onChange={(e) => setEditForm({ ...editForm, duration: Number(e.target.value) })}
+                        className="form-control"
+                        min="5"
+                        step="5"
+                      />
+                    </div>
+=======
                     <div className="form-group"><input type="text" value={editForm.title} onChange={(e) => setEditForm({...editForm, title: e.target.value})} className="form-control" /></div>
                     <div className="form-group"><textarea value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} className="form-control" rows="2" /></div>
                     <div className="form-group">
@@ -124,6 +324,7 @@ const Tasks = () => {
                     </div>
                     <div className="form-group"><label>الأولوية</label><select value={editForm.priority} onChange={(e) => setEditForm({...editForm, priority: e.target.value})} className="form-control"><option value="عالية">عالية</option><option value="متوسطة">متوسطة</option><option value="منخفضة">منخفضة</option></select></div>
                     <div className="form-group"><label>المدة (دقائق)</label><input type="number" value={editForm.duration} onChange={(e) => setEditForm({...editForm, duration: Number(e.target.value)})} className="form-control" min="5" step="5" /></div>
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
                     <div>
                       <button onClick={() => handleUpdate(task.id)} className="btn btn-primary" style={{ marginLeft: '0.5rem' }}>حفظ</button>
                       <button onClick={() => setEditingId(null)} className="btn btn-secondary">إلغاء</button>
@@ -132,21 +333,54 @@ const Tasks = () => {
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <input type="checkbox" checked={task.completed} onChange={() => handleToggle(task)} style={{ width: '1.25rem', height: '1.25rem' }} />
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => handleToggle(task)}
+                        style={{ width: '1.25rem', height: '1.25rem' }}
+                      />
                       <div>
-                        <div style={{ fontWeight: 'bold', textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</div>
-                        {task.description && <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>{task.description}</div>}
+                        <div style={{ fontWeight: 'bold', textDecoration: task.completed ? 'line-through' : 'none' }}>
+                          {task.title}
+                        </div>
+                        {task.description && (
+                          <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>{task.description}</div>
+                        )}
                         <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+<<<<<<< HEAD:src/pages/Tasks.jsx
+                          {task.dueDate && (
+                            <span>
+                              📅 {task.dueDate} {task.dueTime && task.dueTime !== '23:59' ? `⏰ ${task.dueTime}` : ''} | 
+                            </span>
+                          )}
+=======
                           {task.dueDate && <span>📅 {task.dueDate} {task.dueTime && task.dueTime !== '23:59' ? `⏰ ${task.dueTime}` : ''} | </span>}
+>>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Tasks.jsx
                           <span>⏱️ {task.duration} دقيقة | </span>
                           <span>⭐ {task.priorityLabel}</span>
                         </div>
                       </div>
                     </div>
                     <div>
-                      <button onClick={() => handleAutoSchedule(task.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }} title="جدولة تلقائية">⏰</button>
-                      <button onClick={() => handleEdit(task)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>✏️</button>
-                      <button onClick={() => handleDelete(task.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>🗑️</button>
+                      <button
+                        onClick={() => handleAutoSchedule(task.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}
+                        title="جدولة تلقائية"
+                      >
+                        ⏰
+                      </button>
+                      <button
+                        onClick={() => handleEdit(task)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleDelete(task.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 )}

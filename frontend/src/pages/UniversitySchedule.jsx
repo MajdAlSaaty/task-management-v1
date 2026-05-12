@@ -21,7 +21,9 @@ const UniversitySchedule = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(''); // ✅ SUCCESS STATE
+  const [success, setSuccess] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ title: '', day_of_week: 'Monday', start_time: '09:00', end_time: '10:00', valid_from: '', valid_until: '' });
@@ -48,7 +50,7 @@ const UniversitySchedule = () => {
     e.preventDefault();
     setSaving(true);
     setError('');
-    setSuccess(''); // ✅ Clear previous success
+    setSuccess('');
 
     const payload = { ...formData };
     if (!payload.valid_until) delete payload.valid_until;
@@ -57,11 +59,11 @@ const UniversitySchedule = () => {
       if (editingId) {
         const response = await api.put(`/university-schedule/${editingId}`, payload);
         setSchedules((prev) => prev.map((item) => (item.id === editingId ? response.data : item)));
-        setSuccess('تم تحديث المحاضرة بنجاح'); // ✅ Success on update
+        setSuccess('تم تحديث المحاضرة بنجاح ✏️');
       } else {
         const response = await api.post('/university-schedule', payload);
         setSchedules((prev) => [...prev, response.data]);
-        setSuccess('تمت إضافة المحاضرة بنجاح'); // ✅ Success on create
+        setSuccess('تمت إضافة المحاضرة بنجاح ✅');
       }
       resetForm();
     } catch (err) {
@@ -72,22 +74,20 @@ const UniversitySchedule = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('هل أنت متأكد؟')) {
-      setError('');
-      setSuccess(''); // ✅ Clear previous success
-      try {
-        await api.delete(`/university-schedule/${id}`);
-        setSchedules((prev) => prev.filter((item) => item.id !== id));
-        setSuccess('تم حذف المحاضرة بنجاح'); // ✅ Success on delete
-      } catch (err) {
-        setError(`فشل الحذف: ${getApiErrorMessage(err)}`);
-      }
+    setDeleteError('');
+    setDeleteSuccess('');
+    try {
+      await api.delete(`/university-schedule/${id}`);
+      setSchedules((prev) => prev.filter((item) => item.id !== id));
+      setDeleteSuccess('تم حذف المحاضرة بنجاح 🗑️');
+    } catch (err) {
+      setDeleteError(`فشل الحذف: ${getApiErrorMessage(err)}`);
     }
   };
 
   const handleEdit = (s) => {
     setError('');
-    setSuccess(''); // ✅ Clear messages when starting edit
+    setSuccess(''); // Clear messages when starting edit
     setEditingId(s.id);
     setFormData({
       title: s.title,
@@ -104,18 +104,39 @@ const UniversitySchedule = () => {
     setFormData({ title: '', day_of_week: 'Monday', start_time: '09:00', end_time: '10:00', valid_from: '', valid_until: '' });
     setEditingId(null);
     setShowForm(false);
-    // Note: We don't clear success/error here to allow messages to persist after form close
   };
 
   if (loading) return <div className="card">جاري التحميل...</div>;
 
   return (
     <div>
-      {/* ✅ Error message display */}
-      {error && <div className="card" style={{ background: '#fee2e2', color: '#b91c1c' }}>{error}</div>}
+      {/* Error message display */}
+      {error && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: '#fee2e2',
+          color: '#b91c1c',
+          marginBottom: '1rem'
+        }}>
+          {error}
+        </div>
+      )}
       
-      {/* ✅ Success message display */}
-      {success && <div className="card" style={{ background: '#dcfce7', color: '#166534' }}>{success}</div>}
+      {/* Success message display */}
+      {success && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: '#dcfce7',
+          color: '#166534',
+          marginBottom: '1rem'
+        }}>
+          {success}
+        </div>
+      )}
 
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -152,6 +173,30 @@ const UniversitySchedule = () => {
           </ul>
         )}
       </div>
+
+      {/* Delete Messages - separate from form messages */}
+      {deleteSuccess && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: '#fee2e2',
+          color: '#b91c1c'
+        }}>
+          {deleteSuccess}
+        </div>
+      )}
+      {deleteError && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          background: '#fee2e2',
+          color: '#b91c1c'
+        }}>
+          {deleteError}
+        </div>
+      )}
     </div>
   );
 };

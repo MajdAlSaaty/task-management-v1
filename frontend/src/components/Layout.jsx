@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { TaskProvider } from '../contexts/TaskContext';
 import { useNavigate } from 'react-router-dom';
 
 const Layout = () => {
@@ -48,7 +49,9 @@ const Layout = () => {
       </aside>
 
       <main className="main-content">
-        <Outlet />
+        <TaskProvider>
+          <Outlet />
+        </TaskProvider>
       </main>
     </div>
   );
