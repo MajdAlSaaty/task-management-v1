@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { AuthProvider } from './contexts/AuthContext';
-import { TaskProvider } from './contexts/TaskContext';
 import ThemeManager from './components/ThemeManager';
 import './index.css';
 import './styles/global.css';
@@ -17,9 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
       <ThemeManager />
-      <TaskProvider>
-        <RouterProvider router={router} />
-      </TaskProvider>
+      <RouterProvider router={router} />
     </AuthProvider>
   </React.StrictMode>
 );
