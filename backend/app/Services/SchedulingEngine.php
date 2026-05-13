@@ -113,36 +113,45 @@ class SchedulingEngine
         }
 
         // Total remaining time in days (including fractional part)
-        $totalDays = max(0, $now->diffInDays($deadline, false))
-                     + ($now->diffInHours($deadline, false) % 24) / 24.0;
+        $totalDays = (int) max(0, $now->diffInDays($deadline, false))
+        + ($now->diffInHours($deadline, false) % 24) / 24.0;
 
         return 1.0 / ($totalDays + 1.0);
     }
 
-    /**
-     * Core logic: schedules a single task across available days.
-     */
-    private function scheduleSingleTask(Task $task, $preferences): array
-    {
-        $remaining = $task->remaining_minutes;
-        if ($remaining <= 0) {
-            return ['success' => true, 'task' => $task, 'slots' => []];
-        }
+/**
+      * Core logic: schedules a single task across available days.
+      * IMPORTANT: Only creates slots if the task can be fully completed.
+      */
+     private function scheduleSingleTask(Task $task, $preferences): array
+     {
+         $remaining = $task->remaining_minutes;
+         if ($remaining <= 0) {
+             return ['success' => true, 'task' => $task, 'slots' => []];
+         }
 
-        $now = now();
-        $currentDate = $now->copy()->startOfDay();
-        $deadline = Carbon::parse($task->deadline);
+         $now = now();
+         $currentDate = $now->copy()->startOfDay();
+         $deadline = Carbon::parse($task->deadline);
 
-        // Treat date‑only deadlines as end of that day
-        if ($deadline->hour == 0 && $deadline->minute == 0 && $deadline->second == 0) {
-            $deadline->endOfDay();
-        }
-        if ($deadline->lt($now)) {
-            return ['success' => false, 'task' => $task, 'reason' => 'Deadline passed'];
-        }
+         // Treat date‑only deadlines as end of that day
+         if ($deadline->hour == 0 && $deadline->minute == 0 && $deadline->second == 0) {
+             $deadline->endOfDay();
+         }
+         if ($deadline->lt($now)) {
+             return ['success' => false, 'task' => $task, 'reason' => 'Deadline passed'];
+         }
 
-        $deadlineDate = $deadline->copy()->startOfDay();
-        $slots = [];
+         $deadlineDate = $deadline->copy()->startOfDay();
+         $slots = [];
+
+// Pre-check: ensure enough TOTAL available time exists before creating any slots.
+          // This prevents partial scheduling that wastes time and blocks other tasks.
+          // Pass task->id to exclude its own existing slots from the calculation.
+          $totalAvailable = $this->calculateTotalAvailableTime($task->user_id, $currentDate->copy(), $deadlineDate->copy(), $preferences, $task->id);
+         if ($totalAvailable < $remaining) {
+             return ['success' => false, 'task' => $task, 'reason' => 'Insufficient available time'];
+         }
 
          try {
              while ($remaining > 0 && $currentDate->lte($deadlineDate)) {
@@ -208,17 +217,103 @@ class SchedulingEngine
          } catch (\Throwable $e) {
              Log::error("Scheduling error for task {$task->id}: " . $e->getMessage() . "\n" . $e->getTraceAsString());
              return ['success' => false, 'task' => $task, 'reason' => 'Internal error: ' . $e->getMessage()];
+}
+
+          if ($remaining > 0) {
+              return ['success' => false, 'task' => $task, 'reason' => 'Insufficient available time'];
+          }
+
+          $task->update(['status' => 'in_progress']);
+          return ['success' => true, 'task' => $task, 'slots' => $slots];
+      }
+
+/**
+      * Calculate total available minutes across all days from startDate to endDate.
+      * Used for pre-check to avoid partial scheduling.
+      * $excludeTaskId: optional task ID whose existing slots should NOT be counted as blocked.
+      */
+      private function calculateTotalAvailableTime(int $userId, Carbon $startDate, Carbon $endDate, $preferences, ?int $excludeTaskId = null): int
+     {
+         $total = 0;
+         $date = $startDate->copy();
+
+         while ($date->lte($endDate)) {
+             $dayName = $date->format('l');
+             $pref = $preferences->firstWhere('day_of_week', $dayName);
+
+             if ($pref) {
+                 $workStart = Carbon::parse($date->toDateString() . ' ' . $pref->preferred_start_time);
+                 $workEnd = Carbon::parse($date->toDateString() . ' ' . $pref->preferred_end_time);
+
+                 if ($workEnd->gt($workStart)) {
+                     $dayMinutes = $workStart->diffInMinutes($workEnd);
+
+// Subtract existing scheduled slots for this day
+                      $existingQuery = ScheduledSlot::where('user_id', $userId)
+                          ->whereDate('start_time', $date->toDateString())
+                          ->where('status', 'scheduled');
+
+                      if ($excludeTaskId !== null) {
+                          $existingQuery->where('task_id', '!=', $excludeTaskId);
+                      }
+
+                      $existing = $existingQuery->get();
+
+                     $blockedMinutes = 0;
+                     foreach ($existing as $slot) {
+                         $slotStart = Carbon::parse($slot->start_time);
+                         $slotEnd = Carbon::parse($slot->end_time);
+
+                         // Only count if slot overlaps with work window
+                         if ($slotEnd->gt($workStart) && $slotStart->lt($workEnd)) {
+                             $overlapStart = max($slotStart, $workStart);
+                             $overlapEnd = min($slotEnd, $workEnd);
+                             $blockedMinutes += $overlapStart->diffInMinutes($overlapEnd);
+                         }
+                     }
+
+                     // Subtract university schedule
+                     $uni = UniversitySchedule::where('user_id', $userId)
+                         ->where('day_of_week', $dayName)
+                         ->where('valid_from', '<=', $date->toDateString())
+                         ->where(fn($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', $date->toDateString()))
+                         ->get();
+
+                     foreach ($uni as $u) {
+                         $uStart = Carbon::parse($date->toDateString() . ' ' . $u->start_time);
+                         $uEnd = Carbon::parse($date->toDateString() . ' ' . $u->end_time);
+
+                         if ($uEnd->gt($workStart) && $uStart->lt($workEnd)) {
+                             $overlapStart = max($uStart, $workStart);
+                             $overlapEnd = min($uEnd, $workEnd);
+                             $blockedMinutes += $overlapStart->diffInMinutes($overlapEnd);
+                         }
+                     }
+
+                     // Subtract break time
+                     if ($pref->break_start_time && $pref->break_end_time) {
+                         $breakStart = Carbon::parse($date->toDateString() . ' ' . $pref->break_start_time);
+                         $breakEnd = Carbon::parse($date->toDateString() . ' ' . $pref->break_end_time);
+
+                         if ($breakEnd->gt($workStart) && $breakStart->lt($workEnd)) {
+                             $overlapStart = max($breakStart, $workStart);
+                             $overlapEnd = min($breakEnd, $workEnd);
+                             $blockedMinutes += $overlapStart->diffInMinutes($overlapEnd);
+                         }
+                     }
+
+                     $availableToday = max(0, $dayMinutes - $blockedMinutes);
+                     $total += $availableToday;
+                 }
+             }
+
+             $date->addDay();
          }
 
-         if ($remaining > 0) {
-             return ['success' => false, 'task' => $task, 'reason' => 'Insufficient available time'];
-         }
-
-         $task->update(['status' => 'in_progress']);
-         return ['success' => true, 'task' => $task, 'slots' => $slots];
+         return $total;
      }
 
-    /**
+     /**
      * Greedy allocation: finds the earliest free gap on a specific day.
      */
     private function findAvailableSlot(int $userId, Carbon $date, UserDailyPreference $pref): ?array
