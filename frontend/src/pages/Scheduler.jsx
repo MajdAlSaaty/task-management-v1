@@ -1,206 +1,235 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useTasks } from '../contexts/TaskContext';
-import api from '../services/api';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
-const getLocalDateValue = (date = new Date()) => {
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return localDate.toISOString().slice(0, 10);
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS_ARABIC = {
+  Monday: 'الإثنين',
+  Tuesday: 'الثلاثاء',
+  Wednesday: 'الأربعاء',
+  Thursday: 'الخميس',
+  Friday: 'الجمعة',
+  Saturday: 'السبت',
+  Sunday: 'الأحد',
 };
 
-const Scheduler = () => {
-  const { tasks, loading, autoScheduleAllTasks } = useTasks();
-  const [slots, setSlots] = useState([]);
-  const [scheduling, setScheduling] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(getLocalDateValue());
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+const Profile = () => {
+  const { user, preferences, updateDayPreference, deleteDayPreference } = useAuth();
+  const [selectedDay, setSelectedDay] = useState('Monday');
+  const [formData, setFormData] = useState({
+    preferred_start_time: '09:00',
+    preferred_end_time: '17:00',
+    break_start_time: '',
+    break_end_time: '',
+    daily_study_minutes_limit: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
-<<<<<<< HEAD:src/pages/Scheduler.jsx
-  const fetchSlots = useCallback(async () => {
-=======
+  // Check if current day has saved preferences
+  const hasPreferences = preferences.some(p => p.day_of_week === selectedDay);
 
-  const fetchSlots = async () => {
->>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Scheduler.jsx
-    try {
-      const response = await api.get(`/slots?date=${selectedDate}`);
-      setSlots(response.data.data || response.data);
-    } catch (err) { console.error(err); }
-<<<<<<< HEAD:src/pages/Scheduler.jsx
-=======
-  };
-
+  // Load saved preferences when day changes
   useEffect(() => {
-    let active = true;
-    api.get(`/slots?date=${selectedDate}`)
-      .then((response) => { if (active) setSlots(response.data.data || response.data); })
-      .catch(console.error);
-    return () => { active = false; };
->>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Scheduler.jsx
-  }, [selectedDate]);
+    if (!preferences) return;
 
-  useEffect(() => {
-    fetchSlots();
-  }, [fetchSlots]);
+    const dayPref = preferences.find(p => p.day_of_week === selectedDay);
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending');
-
-  const handleAutoScheduleAll = async () => {
-    setScheduling(true);
-    setSuccessMessage('');
-    setErrorMessage('');
-    try {
-      const result = await autoScheduleAllTasks();
-
-      // Handle error from TaskContext (network/server error)
-      if (result && result.error) {
-        setErrorMessage(result.error);
-        return;
-      }
-
-      // Handle case where API returns unexpected format or no results
-      if (!result || !Array.isArray(result.results)) {
-        setErrorMessage('استجابة غير متوقعة من الخادم');
-        return;
-      }
-
-      // Separate successful and failed tasks
-      const succeeded = result.results.filter(r => r.success);
-      const failed    = result.results.filter(r => !r.success);
-
-      if (failed.length === 0 && succeeded.length === 0) {
-        setSuccessMessage('لا توجد مهام معلقة للجدولة');
-      } else if (failed.length === 0) {
-        setSuccessMessage(`✅ تمت جدولة ${succeeded.length} مهمة بنجاح`);
-      } else {
-        // Always show success first (only if there are successes)
-        if (succeeded.length > 0) {
-          setSuccessMessage(`✅ تمت جدولة ${succeeded.length} مهمة بنجاح`);
-        }
-
-        // Then show failed tasks
-        const failedDetails = failed.map(f => {
-          const reason = f.reason || 'غير معروف';
-          return `${f.title} (${reason})`;
-        }).join('، ');
-        setErrorMessage(`❌ ${failed.length} مهمة فشلت: ${failedDetails}`);
-      }
-    } catch (err) {
-      setErrorMessage('خطأ غير متوقع: ' + (err.response?.data?.error || err.message || 'خطأ غير معروف'));
-    } finally {
-      setScheduling(false);
-      fetchSlots();
+    if (dayPref) {
+      setFormData({
+        preferred_start_time: dayPref.preferred_start_time?.slice(0, 5) || '09:00',
+        preferred_end_time: dayPref.preferred_end_time?.slice(0, 5) || '17:00',
+        break_start_time: dayPref.break_start_time?.slice(0, 5) || '',
+        break_end_time: dayPref.break_end_time?.slice(0, 5) || '',
+        daily_study_minutes_limit: dayPref.daily_study_minutes_limit?.toString() || '',
+      });
+    } else {
+      setFormData({
+        preferred_start_time: '09:00',
+        preferred_end_time: '17:00',
+        break_start_time: '',
+        break_end_time: '',
+        daily_study_minutes_limit: '',
+      });
     }
-<<<<<<< HEAD:src/pages/Scheduler.jsx
-=======
-    setScheduling(false);
-    fetchSlots(); 
-    alert('تمت محاولة جدولة جميع المهام المعلقة');
->>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Scheduler.jsx
+  }, [selectedDay, preferences]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setSuccess('');
+    setError('');
+    try {
+      await updateDayPreference(selectedDay, {
+        preferred_start_time: formData.preferred_start_time,
+        preferred_end_time: formData.preferred_end_time,
+        break_start_time: formData.break_start_time || null,
+        break_end_time: formData.break_end_time || null,
+        daily_study_minutes_limit: formData.daily_study_minutes_limit || null,
+      });
+      setSuccess(`✅ تم حفظ تفضيلات يوم ${DAYS_ARABIC[selectedDay]}`);
+    } catch (err) {
+      setError(`❌ ${err.response?.data?.message || 'فشل الحفظ'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (loading) return <div className="card">جاري التحميل...</div>;
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteSuccess('');
+    setDeleteError('');
+    try {
+      await deleteDayPreference(selectedDay);
+      setDeleteSuccess(`🗑️ تم حذف تفضيلات يوم ${DAYS_ARABIC[selectedDay]}`);
+      // Reset form to defaults
+      setFormData({
+        preferred_start_time: '09:00',
+        preferred_end_time: '17:00',
+        break_start_time: '',
+        break_end_time: '',
+        daily_study_minutes_limit: '',
+      });
+    } catch (err) {
+      setDeleteError(`❌ ${err.response?.data?.message || 'فشل الحذف'}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
-    <div>
-      <div className="card">
-        <h3 className="card-title">⏰ جدولة ذكية</h3>
-        <p>عدد المهام المعلقة: {pendingTasks.length}</p>
-        <button
-          onClick={handleAutoScheduleAll}
-          disabled={scheduling || pendingTasks.length === 0}
-          className="btn btn-primary"
-          style={{ marginTop: '1rem' }}
-        >
-          {scheduling ? 'جاري الجدولة...' : 'جدولة المهام المعلقة'}
-        </button>
-        {successMessage && (
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            borderRadius: '0.5rem',
-            background: '#dcfce7',
-            color: '#166534',
-          }}>
-            {successMessage}
-          </div>
-        )}
-        {errorMessage && (
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            borderRadius: '0.5rem',
-            background: '#fee2e2',
-            color: '#b91c1c',
-          }}>
-            {errorMessage}
-          </div>
-        )}
+    <div className="card">
+      <h3 className="card-title">⏰ تفضيلات أوقات الدراسة</h3>
+
+      {/* Day selector tabs - border indicates saved preferences */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        {DAYS_OF_WEEK.map(day => {
+          const hasPref = preferences.some(p => p.day_of_week === day);
+          return (
+            <button
+              key={day}
+              onClick={() => setSelectedDay(day)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '2rem',
+                border: hasPref ? '2px solid var(--primary)' : 'none',
+                background: selectedDay === day ? 'var(--primary)' : 'var(--gray-200)',
+                color: selectedDay === day ? 'white' : 'var(--gray-800)',
+                cursor: 'pointer',
+              }}
+            >
+              {DAYS_ARABIC[day]}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="card">
-        <h3 className="card-title">📅 الجدول اليومي</h3>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="form-control"
-          style={{ width: 'auto', marginBottom: '1rem' }}
-        />
-        {slots.length === 0 ? (
-          <p>لا توجد مهام مجدولة لهذا اليوم.</p>
-        ) : (
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {slots.map(slot => (
-              <li
-                key={slot.id}
-                style={{
-                  padding: '0.75rem',
-                  borderBottom: '1px solid var(--gray-200)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span>
-                  <strong>{slot.task?.title || 'مهمة'}</strong>
-                  <br />
-                  <small>
-                    {new Date(slot.start_time).toLocaleTimeString('ar-EG', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}{' '}
-                    -{' '}
-                    {new Date(slot.end_time).toLocaleTimeString('ar-EG', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </small>
-                </span>
-                <span
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.7rem',
-                    fontWeight: '600',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px',
-                    background: slot.status === 'completed' ? '#10b981' : 'var(--primary)',
-                    color: 'white',
-                    minWidth: '60px'
-                  }}
-                >
-                  {slot.status === 'completed' ? 'مكتمل' : 'مجدول'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* Success/Error messages */}
+      {error && (
+        <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+          {error}
+        </div>
+      )}
+      {success && (
+        <div style={{ background: '#dcfce7', color: '#166534', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+          {success}
+        </div>
+      )}
+      {deleteSuccess && (
+        <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+          {deleteSuccess}
+        </div>
+      )}
+      {deleteError && (
+        <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+          {deleteError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>وقت بدء الدراسة</label>
+          <input
+            type="time"
+            value={formData.preferred_start_time}
+            onChange={(e) => setFormData({ ...formData, preferred_start_time: e.target.value })}
+            className="form-control"
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>وقت انتهاء الدراسة</label>
+          <input
+            type="time"
+            value={formData.preferred_end_time}
+            onChange={(e) => setFormData({ ...formData, preferred_end_time: e.target.value })}
+            className="form-control"
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>بداية الاستراحة (اختياري)</label>
+          <input
+            type="time"
+            value={formData.break_start_time}
+            onChange={(e) => setFormData({ ...formData, break_start_time: e.target.value })}
+            className="form-control"
+          />
+        </div>
+        <div className="form-group">
+          <label>نهاية الاستراحة (اختياري)</label>
+          <input
+            type="time"
+            value={formData.break_end_time}
+            onChange={(e) => setFormData({ ...formData, break_end_time: e.target.value })}
+            className="form-control"
+          />
+        </div>
+        <div className="form-group">
+          <label>الحد الأقصى للدراسة (بالدقائق)</label>
+          <input
+            type="number"
+            value={formData.daily_study_minutes_limit}
+            onChange={(e) => setFormData({ ...formData, daily_study_minutes_limit: e.target.value })}
+            className="form-control"
+            min="1"
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="submit" disabled={loading} className="btn btn-primary">
+            {loading ? 'جاري الحفظ...' : `حفظ تفضيلات ${DAYS_ARABIC[selectedDay]}`}
+          </button>
+
+          {hasPreferences && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{ background: 'var(--danger)', color: 'white' }}
+              className="btn"
+            >
+              {deleting ? 'جاري الحذف...' : 'حذف التفضيلات'}
+            </button>
+          )}
+        </div>
+      </form>
+
+      <hr style={{ margin: '2rem 0' }} />
+      <div>
+        <h4>معلومات الحساب</h4>
+        <p>
+          <strong>البريد الإلكتروني:</strong> {user?.email}
+        </p>
+        <p>
+          <strong>الاسم:</strong> {user?.name}
+        </p>
       </div>
     </div>
   );
 };
 
-export default Scheduler;
+export default Profile;
