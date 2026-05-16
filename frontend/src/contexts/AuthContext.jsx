@@ -6,10 +6,12 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [preferences, setPreferences] = useState([]);  
+  const [preferences, setPreferences] = useState([]); // Array of daily preferences
 
-   const extractToken = (data) => data?.access_token || data?.token || null;
+  // Extract token from response (backend may return access_token or token)
+  const extractToken = (data) => data?.access_token || data?.token || null;
 
+  // Fetch user profile and preferences
   const fetchProfile = async () => {
     try {
       const profileResponse = await api.get('/auth/profile');
@@ -26,7 +28,14 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
- 
+
+  // Standalone fetch for preferences only
+  const fetchPreferences = async () => {
+    const prefsResponse = await api.get('/preferences');
+    setPreferences(prefsResponse.data || []);
+  };
+
+  // Check for existing token on app load
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -36,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Login
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     const token = extractToken(response.data);
@@ -45,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  // Register (signup)
   const signup = async (name, email, password) => {
     const response = await api.post('/auth/register', {
       name,
@@ -59,8 +70,10 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  // Alias for consistency
   const register = signup;
 
+  // Logout
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -72,22 +85,21 @@ export const AuthProvider = ({ children }) => {
       setPreferences([]);
     }
   };
-  
+
+  // Update a specific day's preference
   const updateDayPreference = async (dayOfWeek, preferenceData) => {
     const response = await api.put('/preferences', {
       day_of_week: dayOfWeek,
       ...preferenceData,
     });
-    // Refresh preferences
-    const prefsResponse = await api.get('/preferences');
-    setPreferences(prefsResponse.data || []);
+    await fetchPreferences();
     return response.data;
   };
 
-    const deleteDayPreference = async (dayOfWeek) => {
+  // Delete a specific day's preference
+  const deleteDayPreference = async (dayOfWeek) => {
     await api.delete(`/preferences/${dayOfWeek}`);
-    const prefsResponse = await api.get('/preferences');
-    setPreferences(prefsResponse.data || []);
+    await fetchPreferences();
   };
 
   const value = {
@@ -99,8 +111,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateDayPreference,
-    deleteDayPreference, 
-    refreshPreferences: fetchProfile,
+    deleteDayPreference,
+    refreshPreferences: fetchPreferences,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

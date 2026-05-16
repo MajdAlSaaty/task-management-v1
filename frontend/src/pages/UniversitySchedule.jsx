@@ -87,7 +87,7 @@ const UniversitySchedule = () => {
 
   const handleEdit = (s) => {
     setError('');
-    setSuccess(''); // Clear messages when starting edit
+    setSuccess(''); 
     setEditingId(s.id);
     setFormData({
       title: s.title,
@@ -104,6 +104,7 @@ const UniversitySchedule = () => {
     setFormData({ title: '', day_of_week: 'Monday', start_time: '09:00', end_time: '10:00', valid_from: '', valid_until: '' });
     setEditingId(null);
     setShowForm(false);
+    // Note: We don't clear success/error here to allow messages to persist after form close
   };
 
   if (loading) return <div className="card">جاري التحميل...</div>;

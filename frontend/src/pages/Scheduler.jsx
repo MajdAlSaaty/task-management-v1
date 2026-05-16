@@ -15,27 +15,11 @@ const Scheduler = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-<<<<<<< HEAD:src/pages/Scheduler.jsx
   const fetchSlots = useCallback(async () => {
-=======
-
-  const fetchSlots = async () => {
->>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Scheduler.jsx
     try {
       const response = await api.get(`/slots?date=${selectedDate}`);
       setSlots(response.data.data || response.data);
     } catch (err) { console.error(err); }
-<<<<<<< HEAD:src/pages/Scheduler.jsx
-=======
-  };
-
-  useEffect(() => {
-    let active = true;
-    api.get(`/slots?date=${selectedDate}`)
-      .then((response) => { if (active) setSlots(response.data.data || response.data); })
-      .catch(console.error);
-    return () => { active = false; };
->>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Scheduler.jsx
   }, [selectedDate]);
 
   useEffect(() => {
@@ -90,12 +74,6 @@ const Scheduler = () => {
       setScheduling(false);
       fetchSlots();
     }
-<<<<<<< HEAD:src/pages/Scheduler.jsx
-=======
-    setScheduling(false);
-    fetchSlots(); 
-    alert('تمت محاولة جدولة جميع المهام المعلقة');
->>>>>>> ee8d377ab5ba4ef87fab4f5804feffe33c3b7c49:frontend/src/pages/Scheduler.jsx
   };
 
   if (loading) return <div className="card">جاري التحميل...</div>;
@@ -175,7 +153,7 @@ const Scheduler = () => {
                     })}
                   </small>
                 </span>
-                <span
+<span
                   style={{
                     padding: '0.35rem 0.85rem',
                     borderRadius: '9999px',
