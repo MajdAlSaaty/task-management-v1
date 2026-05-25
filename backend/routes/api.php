@@ -5,6 +5,8 @@ use App\Http\Controllers\API\TaskController;
 use App\Http\Controllers\API\ScheduledSlotController;
 use App\Http\Controllers\API\UserDailyPreferenceController;
 use App\Http\Controllers\API\UniversityScheduleController;
+use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\ConflictController;
 use Illuminate\Support\Facades\Route;
 
 // Public auth routes
@@ -36,4 +38,18 @@ Route::middleware('auth:api')->group(function () {
     // University Schedule
     Route::apiResource('university-schedule', UniversityScheduleController::class)
         ->parameters(['university-schedule' => 'schedule']);
-});
+
+    // Notifications
+    Route::get("/notifications", [NotificationController::class, "index"]);
+    Route::get("/notifications/{notification}", [NotificationController::class, "show"]);
+    Route::put("/notifications/{notification}/read", [NotificationController::class, "markAsRead"]);
+    Route::put("/notifications/read-all", [NotificationController::class, "markAllAsRead"]);
+    Route::delete("/notifications/{notification}", [NotificationController::class, "destroy"]);
+
+
+    // Conflict Logs
+    Route::get('/conflicts', [ConflictController::class, 'index']);
+    Route::get('/conflicts/{conflictLog}', [ConflictController::class, 'show']);
+    Route::delete('/conflicts/{conflictLog}', [ConflictController::class, 'destroy']);
+    
+ });
