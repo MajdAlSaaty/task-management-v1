@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\UserDailyPreference;
+use App\Models\Notification;
 use App\Services\SchedulingEngine;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -83,6 +84,14 @@ class TaskController extends Controller
         ]);
 
         $task->update($validated);
+        // Notify user of task status change when task is completed
+        if (isset($validated["status"]) && $validated["status"] == "completed") {
+            $this->notifyTaskStatusChange(
+                $task,
+                "system",
+                "أحسنت! أكملت مهمة: {$task->title}"
+            );
+        }
         return response()->json($task);
     }
 
@@ -123,6 +132,15 @@ class TaskController extends Controller
                 'weight' => round($weight, 2),
                 'urgency' => round($urgency, 4),
             ], 422);
+        }
+
+        // Notify user of task status change for auto-scheduled task
+        if ($result['success'] && $task->status == 'in_progress') {
+            $this->notifyTaskStatusChange(
+                $task->fresh(),
+                'system',
+                "تم بدء جدولة مهمة: {$task->title}"
+            );
         }
 
         return response()->json([
@@ -205,6 +223,21 @@ class TaskController extends Controller
             'alpha_component' => round(10.0 * $priorityInverted, 2),
             'beta_component' => round(50.0 * $urgency, 2),
             'gamma_component' => round(0.5 * ($task->duration_minutes / 60.0), 2),
+        ]);
+    }
+
+    /**
+     * Notify user of task status changes.
+     */
+    private function notifyTaskStatusChange(Task $task, string $type, string $message): void
+    {
+        Notification::create([
+            'user_id' => $task->user_id,
+            'task_id' => $task->id,
+            'type' => $type,
+            'message' => $message,
+            'scheduled_time' => now(),
+            'is_read' => false,
         ]);
     }
 }
