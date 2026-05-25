@@ -38,6 +38,16 @@ class Task extends Model
         return $this->hasMany(ScheduledSlot::class);
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function conflictLogs(): HasMany
+    {
+        return $this->hasMany(ConflictLog::class, 'task1_id');
+    }
+
     // Calculate how many minutes are still unscheduled for this task.
     public function getRemainingMinutesAttribute(): int
     {
