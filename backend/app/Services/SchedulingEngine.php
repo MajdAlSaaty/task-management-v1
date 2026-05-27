@@ -477,11 +477,47 @@ class SchedulingEngine
      * Find a suggested deadline for a task that couldn't be fully scheduled.
      * Looks ahead up to 30 days for enough available time.
      */
+    /**
+     * Recalculate suggested deadlines for all remaining conflicts for a user.
+     * Cleans up stale conflicts (already scheduled/completed tasks) and updates
+     * suggested_fix for active ones based on current slot occupancy.
+     */
+    public function refreshConflictSuggestions(int $userId, $preferences): void
+    {
+        $conflicts = ConflictLog::where('user_id', $userId)->get();
+        $now = now();
+
+        foreach ($conflicts as $conflict) {
+            $task = Task::find($conflict->task1_id);
+            if (!$task || in_array($task->status, ['in_progress', 'completed', 'cancelled'])) {
+                $conflict->delete();
+                continue;
+            }
+
+            $remaining = $task->remaining_minutes;
+            if ($remaining <= 0) {
+                $conflict->delete();
+                continue;
+            }
+
+            $suggestedDeadline = $this->findSuggestedDeadline(
+                $userId, $now->copy(), $remaining, $preferences
+            );
+
+            $conflict->update([
+                'suggested_fix' => $suggestedDeadline
+                    ? "عدد الدقائق المتبقية: {$remaining}. الموعد النهائي المقترح: {$suggestedDeadline->toDateTimeString()}"
+                    : "عدد الدقائق المتبقية: {$remaining}. لا يوجد موعد نهائي مقترح",
+            ]);
+        }
+    }
+
     private function findSuggestedDeadline(int $userId, Carbon $startDate, int $remainingMinutes, $preferences): ?Carbon
     {
         $maxDays = 30;
         $date = $startDate->copy();
         $endDate = $startDate->copy()->addDays($maxDays);
+        $accumulated = 0;
 
         while ($date->lte($endDate)) {
             $dayName = $date->format('l');
@@ -543,9 +579,10 @@ class SchedulingEngine
                     }
 
                     $availableToday = max(0, $dayMinutes - $blockedMinutes);
+                    $accumulated += $availableToday;
 
-                    if ($availableToday >= $remainingMinutes) {
-                        // Found enough time on this day, suggest end of work day
+                    if ($accumulated >= $remainingMinutes) {
+                        // Found enough accumulated time, suggest end of this day
                         return $workEnd->copy();
                     }
                 }

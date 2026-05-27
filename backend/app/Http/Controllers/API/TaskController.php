@@ -143,6 +143,9 @@ class TaskController extends Controller
             );
         }
 
+        // Refresh suggested deadlines for remaining conflicts
+        $this->schedulingEngine->refreshConflictSuggestions($request->user()->id, $preferences);
+
         return response()->json([
             'task' => $task->fresh()->load('scheduledSlots'),
             'slots' => $result['slots'],
@@ -182,6 +185,10 @@ class TaskController extends Controller
 
         try {
             $result = $this->schedulingEngine->scheduleAllTasks($tasks, $preferences);
+
+            // Refresh suggested deadlines for remaining conflicts
+            $this->schedulingEngine->refreshConflictSuggestions($request->user()->id, $preferences);
+
             return response()->json($result);
         } catch (\Throwable $e) {
             Log::error("Auto-schedule all error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
