@@ -54,6 +54,15 @@ class TaskController extends Controller
 
         $task = $request->user()->tasks()->create($validated);
 
+        Notification::create([
+            'user_id' => $request->user()->id,
+            'task_id' => $task->id,
+            'type' => 'system',
+            'message' => "تم إنشاء مهمة: {$task->title}",
+            'scheduled_time' => now(),
+            'is_read' => false,
+        ]);
+
         return response()->json($task, 201);
     }
 
@@ -83,15 +92,34 @@ class TaskController extends Controller
             'status' => 'sometimes|in:pending,in_progress,completed,cancelled',
         ]);
 
+        $oldDuration = $task->duration_minutes;
+        $oldDeadline = $task->deadline ? $task->deadline->toDateTimeString() : null;
+
         $task->update($validated);
-        // Notify user of task status change when task is completed
-        if (isset($validated["status"]) && $validated["status"] == "completed") {
-            $this->notifyTaskStatusChange(
-                $task,
-                "system",
-                "أحسنت! أكملت مهمة: {$task->title}"
-            );
+        // Notify user of task status change
+        if (isset($validated["status"])) {
+            $status = $validated["status"];
+            if ($status === "completed") {
+                $this->notifyTaskStatusChange(
+                    $task,
+                    "system",
+                    "أحسنت! أكملت مهمة: {$task->title}"
+                );
+            } elseif ($status === "cancelled") {
+                $this->notifyTaskStatusChange(
+                    $task,
+                    "system",
+                    "تم إلغاء مهمة: {$task->title}"
+                );
+            } elseif ($status === "in_progress") {
+                $this->notifyTaskStatusChange(
+                    $task,
+                    "system",
+                    "تم بدء مهمة: {$task->title}"
+                );
+            }
         }
+
         return response()->json($task);
     }
 
@@ -101,6 +129,16 @@ class TaskController extends Controller
     public function destroy(Task $task)
     {
         $this->authorize('delete', $task);
+
+        Notification::create([
+            'user_id' => $task->user_id,
+            'task_id' => $task->id,
+            'type' => 'system',
+            'message' => "تم حذف مهمة: {$task->title}",
+            'scheduled_time' => now(),
+            'is_read' => false,
+        ]);
+
         $task->delete();
         return response()->json(null, 204);
     }
@@ -132,15 +170,6 @@ class TaskController extends Controller
                 'weight' => round($weight, 2),
                 'urgency' => round($urgency, 4),
             ], 422);
-        }
-
-        // Notify user of task status change for auto-scheduled task
-        if ($result['success'] && $task->status == 'in_progress') {
-            $this->notifyTaskStatusChange(
-                $task->fresh(),
-                'system',
-                "تم بدء جدولة مهمة: {$task->title}"
-            );
         }
 
         // Refresh suggested deadlines for remaining conflicts
