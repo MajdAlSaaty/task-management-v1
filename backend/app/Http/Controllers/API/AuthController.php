@@ -26,6 +26,8 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $user->sendEmailVerificationNotification();
+
         $token = JWTAuth::fromUser($user);
 
         return $this->respondWithToken($token, $user, 201);
