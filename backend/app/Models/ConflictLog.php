@@ -8,8 +8,7 @@ class ConflictLog extends Model
 {
     protected $fillable = [
         'user_id',
-        'task1_id',
-        'task2_id',
+        'task_id',
         'conflict_type',
         'suggested_fix',
     ];

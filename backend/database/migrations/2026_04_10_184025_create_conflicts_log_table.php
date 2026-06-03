@@ -14,8 +14,7 @@ return new class extends Migration
        Schema::create('conflicts_log', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('task1_id')->nullable()->constrained('tasks')->onDelete('set null');
-            $table->foreignId('task2_id')->nullable()->constrained('tasks')->onDelete('set null');
+            $table->foreignId('task_id')->nullable()->constrained('tasks')->onDelete('set null');
             $table->text('conflict_type');
             $table->text('suggested_fix')->nullable();
             $table->timestamps();

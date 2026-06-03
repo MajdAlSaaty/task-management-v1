@@ -21,7 +21,6 @@ return new class extends Migration
             ]);
             $table->time('preferred_start_time'); 
             $table->time('preferred_end_time');   
-            $table->integer('daily_study_minutes_limit')->nullable();
             $table->time('break_start_time')->nullable(); 
             $table->time('break_end_time')->nullable();  
             $table->timestamps();

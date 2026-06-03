@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,11 +11,13 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Models\Task;
 use App\Models\ScheduledSlot;
 use App\Models\UserDailyPreference;
-use App\Models\UniversitySchedule;  // Make sure this import exists
+use App\Models\UniversitySchedule;
+use App\Notifications\VerifyEmailNotification;
+use App\Notifications\PasswordResetNotification;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable implements JWTSubject, MustVerifyEmailContract
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, MustVerifyEmail;
 
     protected $fillable = ['name', 'email', 'password'];
     protected $hidden = ['password', 'remember_token'];
@@ -52,5 +56,15 @@ class User extends Authenticatable implements JWTSubject
     public function conflictLogs()
     {
         return $this->hasMany(ConflictLog::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new PasswordResetNotification($token));
     }
 }

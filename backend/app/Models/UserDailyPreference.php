@@ -14,14 +14,11 @@ class UserDailyPreference extends Model
         'day_of_week',
         'preferred_start_time',
         'preferred_end_time',
-        'daily_study_minutes_limit',
         'break_start_time',
         'break_end_time'
     ];
 
-    protected $casts = [
-        'daily_study_minutes_limit' => 'integer',
-    ];
+    protected $casts = [];
 
     public function user(): BelongsTo
     {
