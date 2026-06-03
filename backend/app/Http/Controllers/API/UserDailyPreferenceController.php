@@ -46,7 +46,6 @@ class UserDailyPreferenceController extends Controller
             'day_of_week' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'preferred_start_time' => 'required|date_format:H:i',
             'preferred_end_time' => 'required|date_format:H:i|after:preferred_start_time',
-            'daily_study_minutes_limit' => 'nullable|integer|min:1',
             'break_start_time' => 'nullable|date_format:H:i',
             'break_end_time' => 'nullable|date_format:H:i|after:break_start_time',
         ]);
