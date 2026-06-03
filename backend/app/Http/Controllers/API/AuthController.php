@@ -3,26 +3,27 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Controllers\API\Concerns\ApiResponse;
+use App\Http\Requests\API\LoginRequest;
+use App\Http\Requests\API\RegisterRequest;
+use App\Http\Requests\API\UpdateProfileRequest;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
+    use ApiResponse;
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
         $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
         ]);
 
         $token = JWTAuth::fromUser($user);
@@ -30,21 +31,33 @@ class AuthController extends Controller
         return $this->respondWithToken($token, $user, 201);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
-        ]);
+        $key = 'login_attempts_' . $request->email . '|' . $request->ip();
 
-        if (! $token = JWTAuth::attempt($credentials)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+            return $this->respondError(
+                "محاولات تسجيل دخول كثيرة. حاول مرة أخرى بعد {$seconds} ثانية.",
+                429
+            );
         }
 
-        return $this->respondWithToken($token, auth('api')->user());
+        $credentials = $request->only('email', 'password');
+
+        if (!$token = JWTAuth::attempt($credentials)) {
+            RateLimiter::hit($key, 900);
+            return $this->respondError('بيانات الدخول غير صحيحة', 401);
+        }
+
+        RateLimiter::clear($key);
+
+        $user = auth('api')->user();
+
+        return $this->respondWithToken($token, $user);
     }
 
-    public function logout()
+    public function logout(): JsonResponse
     {
         $token = JWTAuth::getToken();
 
@@ -52,23 +65,28 @@ class AuthController extends Controller
             JWTAuth::invalidate($token);
         }
 
-        return response()->json(['message' => 'Logged out successfully']);
+        return response()->json(['message' => 'تم تسجيل الخروج بنجاح']);
     }
 
-    public function profile(Request $request)
+    public function refresh(): JsonResponse
+    {
+        try {
+            $newToken = JWTAuth::parseToken()->refresh();
+            return $this->respondWithToken($newToken);
+        } catch (\Exception $e) {
+            return $this->respondError('تعذر تحديث الجلسة. يرجى تسجيل الدخول مرة أخرى.', 401);
+        }
+    }
+
+    public function profile(Request $request): JsonResponse
     {
         return response()->json(['user' => $request->user()]);
     }
 
-    public function updateProfile(Request $request)
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
-            'password' => 'sometimes|string|min:6|confirmed',
-        ]);
+        $data = $request->validated();
 
         if (array_key_exists('password', $data)) {
             $data['password'] = Hash::make($data['password']);
@@ -76,16 +94,21 @@ class AuthController extends Controller
 
         $user->update($data);
 
-        return response()->json(['user' => $user->fresh()]);
+        return response()->json(['user' => $user->fresh(), 'message' => 'تم تحديث الملف الشخصي بنجاح']);
     }
 
-    protected function respondWithToken(string $token, ?User $user = null, int $status = 200)
+    protected function respondWithToken(string $token, ?User $user = null, int $status = 200): JsonResponse
     {
-        return response()->json([
+        $data = [
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => JWTAuth::factory()->getTTL() * 60,
-            'user' => $user,
-        ], $status);
+        ];
+
+        if ($user) {
+            $data['user'] = $user;
+        }
+
+        return response()->json($data, $status);
     }
 }
