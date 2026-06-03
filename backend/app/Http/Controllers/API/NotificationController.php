@@ -16,7 +16,9 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $query = $request->user()->notifications()->orderBy('scheduled_time', 'desc');
+        $query = $request->user()->notifications()
+            ->where('scheduled_time', '<=', now())
+            ->orderBy('scheduled_time', 'desc');
 
         if ($request->has('type')) {
             $query->where('type', $request->type);
@@ -26,7 +28,17 @@ class NotificationController extends Controller
             $query->where('is_read', $request->boolean('is_read'));
         }
 
-        return response()->json($query->paginate(20));
+        $paginator = $query->paginate(20);
+
+        $unreadCount = $request->user()->notifications()
+            ->where('scheduled_time', '<=', now())
+            ->where('is_read', false)
+            ->count();
+
+        $result = $paginator->toArray();
+        $result['unread_count'] = $unreadCount;
+
+        return response()->json($result);
     }
 
     /**
@@ -53,7 +65,9 @@ class NotificationController extends Controller
      */
     public function markAllAsRead(Request $request)
     {
-        $request->user()->notifications()->update(['is_read' => true]);
+        $request->user()->notifications()
+            ->where('scheduled_time', '<=', now())
+            ->update(['is_read' => true]);
         return response()->json(['message' => 'تم تحديد جميع الإشعارات كمقروءة']);
     }
 
@@ -64,6 +78,17 @@ class NotificationController extends Controller
     {
         $this->authorize('delete', $notification);
         $notification->delete();
+        return response()->json(null, 204);
+    }
+
+    /**
+     * Delete all notifications for the authenticated user.
+     */
+    public function destroyAll(Request $request)
+    {
+        $request->user()->notifications()
+            ->where('scheduled_time', '<=', now())
+            ->delete();
         return response()->json(null, 204);
     }
 }
