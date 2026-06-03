@@ -190,11 +190,9 @@ class SchedulingEngine
                 }
 
                 $scheduledToday = 0;
-                $dailyLimit = $pref->daily_study_minutes_limit;
 
                 while ($remaining > 0) {
                     $previousRemaining = $remaining;
-                    if ($dailyLimit && $scheduledToday >= $dailyLimit) break;
 
                     $gap = $this->findAvailableSlot($task->user_id, $currentDate, $pref);
                     if (!$gap) break;
@@ -206,10 +204,6 @@ class SchedulingEngine
                     if ($slotEnd->gt($deadline)) $slotEnd = $deadline->copy();
 
                     $minutes = $slotStart->diffInMinutes($slotEnd);
-                    if ($dailyLimit) {
-                        $remainingDaily = $dailyLimit - $scheduledToday;
-                        $minutes = min($minutes, $remainingDaily);
-                    }
                     $minutes = min($minutes, $remaining);
                     if ($minutes <= 0) break;
 
@@ -238,6 +232,25 @@ class SchedulingEngine
                     if ($remaining >= $previousRemaining) break;
                 }
                 $currentDate->addDay();
+            }
+
+            // Merge adjacent slots for the same task on the same day
+            $slots = $task->scheduledSlots()->orderBy('start_time')->get();
+            if ($slots->count() > 1) {
+                $merged = [];
+                $prev = null;
+                foreach ($slots as $slot) {
+                    if ($prev &&
+                        $slot->start_time->toDateString() === $prev->start_time->toDateString() &&
+                        $slot->start_time->eq($prev->end_time)) {
+                        $prev->update(['end_time' => $slot->end_time]);
+                        $slot->delete();
+                    } else {
+                        $merged[] = $slot;
+                        $prev = $slot;
+                    }
+                }
+                $slots = $merged;
             }
         } catch (\Throwable $e) {
             Log::error("Scheduling error for task {$task->id}: " . $e->getMessage() . "\n" . $e->getTraceAsString());
@@ -289,26 +302,17 @@ class SchedulingEngine
                 }
             }
 
-            // Create start notification
-            Notification::create([
-                'user_id' => $task->user_id,
-                'task_id' => $task->id,
-                'type' => 'system',
-                'message' => "بدأ المهمة '{$task->title}'",
-                'scheduled_time' => $slot->start_time,
-                'is_read' => false,
-            ]);
-
-            // Create completion notification
-            Notification::create([
-                'user_id' => $task->user_id,
-                'task_id' => $task->id,
-                'type' => 'system',
-                'message' => "انتهت المهمة '{$task->title}'",
-                'scheduled_time' => $slot->end_time,
-                'is_read' => false,
-            ]);
         }
+
+        // Single notification that the task has been scheduled (not per-slot)
+        Notification::create([
+            'user_id' => $task->user_id,
+            'task_id' => $task->id,
+            'type' => 'system',
+            'message' => "تمت جدولة المهمة '{$task->title}'",
+            'scheduled_time' => now(),
+            'is_read' => false,
+        ]);
 
         return ['success' => true, 'task' => $task, 'slots' => $slots];
     }
@@ -332,7 +336,25 @@ class SchedulingEngine
                 $workEnd = Carbon::parse($date->toDateString() . ' ' . $pref->preferred_end_time);
 
                 if ($workEnd->gt($workStart)) {
+                    // For today, start from current time, not midnight
+                    if ($date->isSameDay(now())) {
+                        $now = now();
+                        if ($now->gte($workEnd)) {
+                            $date->addDay();
+                            continue;
+                        }
+                        if ($now->gt($workStart)) {
+                            $workStart = $now->copy();
+                        }
+                    }
+
                     $dayMinutes = $workStart->diffInMinutes($workEnd);
+
+                    // Skip if no time left
+                    if ($dayMinutes <= 0) {
+                        $date->addDay();
+                        continue;
+                    }
 
                     // Subtract existing scheduled slots for this day
                     $existingQuery = ScheduledSlot::where('user_id', $userId)
@@ -489,7 +511,7 @@ class SchedulingEngine
 
         foreach ($conflicts as $conflict) {
             $task = Task::find($conflict->task1_id);
-            if (!$task || in_array($task->status, ['in_progress', 'completed', 'cancelled'])) {
+            if (!$task || in_array($task->status, ['completed', 'cancelled'])) {
                 $conflict->delete();
                 continue;
             }
@@ -528,7 +550,25 @@ class SchedulingEngine
                 $workEnd = Carbon::parse($date->toDateString() . ' ' . $pref->preferred_end_time);
 
                 if ($workEnd->gt($workStart)) {
+                    // For today, start from current time
+                    if ($date->isSameDay(now())) {
+                        $now = now();
+                        if ($now->gte($workEnd)) {
+                            $date->addDay();
+                            continue;
+                        }
+                        if ($now->gt($workStart)) {
+                            $workStart = $now->copy();
+                        }
+                    }
+
                     $dayMinutes = $workStart->diffInMinutes($workEnd);
+
+                    // Skip if no time left
+                    if ($dayMinutes <= 0) {
+                        $date->addDay();
+                        continue;
+                    }
 
                     // Get existing slots for this day
                     $existing = ScheduledSlot::where('user_id', $userId)
@@ -579,12 +619,13 @@ class SchedulingEngine
                     }
 
                     $availableToday = max(0, $dayMinutes - $blockedMinutes);
-                    $accumulated += $availableToday;
 
-                    if ($accumulated >= $remainingMinutes) {
-                        // Found enough accumulated time, suggest end of this day
-                        return $workEnd->copy();
+                    if ($accumulated + $availableToday >= $remainingMinutes) {
+                        $neededToday = $remainingMinutes - $accumulated;
+                        return $workStart->copy()->addMinutes($neededToday);
                     }
+
+                    $accumulated += $availableToday;
                 }
             }
 
