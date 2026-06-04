@@ -1,0 +1,142 @@
+.timeline-container {
+  direction: ltr;
+  user-select: none;
+}
+
+/* Day View */
+.timeline-day-view {
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+
+.timeline-labels {
+  width: 50px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.timeline-hour-label {
+  height: 60px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  padding-top: 2px;
+  position: relative;
+}
+
+.timeline-track {
+  flex: 1;
+  position: relative;
+  min-height: calc(17 * 60px);
+  background: var(--gray-50);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.timeline-track-hour {
+  height: 60px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.timeline-track-hour:nth-child(even) {
+  background: var(--gray-50);
+}
+
+.timeline-slot {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 0.5rem;
+  padding: 4px 8px;
+  overflow: hidden;
+  z-index: 10;
+  min-height: 20px;
+}
+
+.timeline-slot-title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: white;
+}
+
+.timeline-slot-time {
+  font-size: 0.65rem;
+  opacity: 0.85;
+  white-space: nowrap;
+  color: white;
+}
+
+/* Week View */
+.timeline-week-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-week-header {
+  display: flex;
+  padding-right: 50px;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-week-spacer {
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.timeline-week-day-header {
+  flex: 1;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.timeline-week-day-header.today {
+  color: var(--primary);
+}
+
+.timeline-week-body {
+  display: flex;
+  gap: 0;
+}
+
+.timeline-week-cols {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+
+.timeline-week-col {
+  flex: 1;
+  position: relative;
+  min-height: calc(17 * 60px);
+  border-left: 1px solid var(--gray-200);
+}
+
+.timeline-week-col:first-child {
+  border-left: none;
+}
+
+.timeline-week-col-hour {
+  height: 60px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.timeline-week-col.today {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.timeline-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-500);
+}
