@@ -6,19 +6,19 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [preferences, setPreferences] = useState([]);  
+  const [preferences, setPreferences] = useState([]);
 
-   const extractToken = (data) => data?.access_token || data?.token || null;
+  const extractToken = (data) => data?.data?.access_token || data?.access_token || data?.token || null;
 
   const fetchProfile = async () => {
     try {
       const profileResponse = await api.get('/auth/profile');
-      setUser(profileResponse.data?.user || profileResponse.data);
+      const userData = profileResponse.data?.data?.user || profileResponse.data?.user || profileResponse.data;
+      setUser(userData);
 
       const prefsResponse = await api.get('/preferences');
-      setPreferences(prefsResponse.data || []);
+      setPreferences(prefsResponse.data?.data || prefsResponse.data || []);
     } catch {
-      // Token invalid - clear storage
       localStorage.removeItem('token');
       setUser(null);
       setPreferences([]);
@@ -26,7 +26,12 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
- 
+
+  const fetchPreferences = async () => {
+    const prefsResponse = await api.get('/preferences');
+    setPreferences(prefsResponse.data?.data || prefsResponse.data || []);
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -45,12 +50,12 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const signup = async (name, email, password) => {
+  const signup = async (name, email, password, password_confirmation) => {
     const response = await api.post('/auth/register', {
       name,
       email,
       password,
-      password_confirmation: password,
+      password_confirmation: password_confirmation || password,
     });
     const token = extractToken(response.data);
     if (!token) throw new Error('No token returned from server');
@@ -60,6 +65,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = signup;
+
+  const refreshToken = async () => {
+    const response = await api.post('/auth/refresh');
+    const token = extractToken(response.data);
+    if (token) {
+      localStorage.setItem('token', token);
+    }
+    return token;
+  };
 
   const logout = async () => {
     try {
@@ -72,22 +86,19 @@ export const AuthProvider = ({ children }) => {
       setPreferences([]);
     }
   };
-  
+
   const updateDayPreference = async (dayOfWeek, preferenceData) => {
     const response = await api.put('/preferences', {
       day_of_week: dayOfWeek,
       ...preferenceData,
     });
-    // Refresh preferences
-    const prefsResponse = await api.get('/preferences');
-    setPreferences(prefsResponse.data || []);
+    await fetchPreferences();
     return response.data;
   };
 
-    const deleteDayPreference = async (dayOfWeek) => {
+  const deleteDayPreference = async (dayOfWeek) => {
     await api.delete(`/preferences/${dayOfWeek}`);
-    const prefsResponse = await api.get('/preferences');
-    setPreferences(prefsResponse.data || []);
+    await fetchPreferences();
   };
 
   const value = {
@@ -97,10 +108,11 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     register,
+    refreshToken,
     logout,
     updateDayPreference,
-    deleteDayPreference, 
-    refreshPreferences: fetchProfile,
+    deleteDayPreference,
+    refreshPreferences: fetchPreferences,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

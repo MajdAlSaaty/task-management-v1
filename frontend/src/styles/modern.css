@@ -1,12 +1,5 @@
-:root {
-  --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #10b981; --danger: #ef4444;
-  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-600: #4b5563; --gray-800: #1f2937;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05); --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
 .app-layout { display: flex; min-height: 100vh; }
-.sidebar { width: 280px; background: white; box-shadow: var(--shadow-md); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; border-left: 1px solid var(--gray-200); }
-.sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid var(--gray-200); }
-.sidebar-header h2 { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), #8b5cf6); -webkit-background-clip: text; color: transparent; }
+.sidebar { width: 280px; background: var(--bg); box-shadow: var(--shadow-md); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; border-left: 1px solid var(--gray-200); }
 .tagline { font-size: 0.75rem; color: var(--gray-600); }
 .sidebar-nav { flex: 1; padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; color: var(--gray-600); transition: 0.2s; font-weight: 500; }
@@ -17,7 +10,13 @@
 .logout-button { display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.75rem 1rem; background: var(--danger); color: white; border: none; border-radius: 0.5rem; cursor: pointer; }
 .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-.stat-card { background: white; padding: 1.5rem; border-radius: 0.75rem; box-shadow: var(--shadow-sm); text-align: center; }
+.stat-card { background: var(--bg); padding: 1.5rem; border-radius: 0.75rem; box-shadow: var(--shadow-sm); text-align: center; }
 .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
 .stat-label { color: var(--gray-600); }
 @media (max-width: 768px) { .app-layout { flex-direction: column; } .sidebar { width: 100%; height: auto; position: relative; } .sidebar-nav { flex-direction: row; flex-wrap: wrap; } .main-content { padding: 1rem; } }
+
+.toast { margin-bottom: 1rem; padding: 0.75rem; border-radius: var(--radius-sm); }
+.toast-success { background: var(--success-bg); color: var(--success-text); }
+.toast-error { background: var(--error-bg); color: var(--error-text); }
+
+.recharts-legend-item-text { color: var(--text) !important; }

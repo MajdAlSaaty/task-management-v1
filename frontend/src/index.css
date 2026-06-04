@@ -29,7 +29,6 @@
   }
 }
 
-/* الوضع الفاتح المُختار يدوياً */
 html.theme-light {
   --text: #6b6375;
   --text-h: #08060d;
@@ -42,16 +41,16 @@ html.theme-light {
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  /* متغيرات الوضع الحديث (modern) للفاتح */
   --primary: #6366f1;
   --primary-dark: #4f46e5;
   --secondary: #10b981;
   --danger: #ef4444;
-  --warning: #f71d00;
+  --warning: #f59e0b;
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
   --gray-600: #4b5563;
   --gray-800: #1f2937;
   --gray-900: #111827;
@@ -60,9 +59,14 @@ html.theme-light {
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --radius: 0.75rem;
   --radius-sm: 0.5rem;
+  --overlay: rgba(0, 0, 0, 0.5);
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --error-bg: #fee2e2;
+  --error-text: #b91c1c;
+  --danger-bg: rgba(220, 53, 69, 0.1);
 }
 
-/* الوضع الداكن المُختار يدوياً */
 html.theme-dark {
   --text: #9ca3af;
   --text-h: #f3f4f6;
@@ -75,7 +79,6 @@ html.theme-dark {
   --social-bg: rgba(55, 65, 81, 0.5);
   --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 
-  /* متغيرات الوضع الحديث (modern) للداكن */
   --primary: #818cf8;
   --primary-dark: #6366f1;
   --secondary: #34d399;
@@ -85,6 +88,7 @@ html.theme-dark {
   --gray-100: #374151;
   --gray-200: #4b5563;
   --gray-300: #6b7280;
+  --gray-400: #9ca3af;
   --gray-600: #9ca3af;
   --gray-800: #f3f4f6;
   --gray-900: #f9fafb;
@@ -93,6 +97,12 @@ html.theme-dark {
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
   --radius: 0.75rem;
   --radius-sm: 0.5rem;
+  --overlay: rgba(0, 0, 0, 0.7);
+  --success-bg: rgba(52, 211, 153, 0.15);
+  --success-text: #34d399;
+  --error-bg: rgba(248, 113, 113, 0.15);
+  --error-text: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.15);
 }
 
 body {
@@ -100,10 +110,9 @@ body {
 }
 
 #root {
-  max-width: 1126px;
   width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
-  text-align: center;
   border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
