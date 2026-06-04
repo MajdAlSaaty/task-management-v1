@@ -10,7 +10,20 @@ const api = axios.create({
   },
 });
 
-// Add JWT token to every request
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -22,18 +35,60 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle 401 Unauthorized (token expired)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     if (!error.response && error.code === 'ERR_NETWORK') {
       error.message = 'Unable to reach API server. Make sure Laravel is running on http://127.0.0.1:8000.';
+      return Promise.reject(error);
     }
 
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/auth';
+    if (originalRequest?.url?.includes('/auth/')) {
+      return Promise.reject(error);
     }
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await axios.post(`${API_URL}/auth/refresh`, {}, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json',
+          },
+        });
+
+        const newToken = response.data?.data?.access_token || response.data?.access_token;
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          processQueue(null, newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        }
+
+        throw new Error('No token in refresh response');
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        localStorage.removeItem('token');
+        window.location.href = '/auth';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     return Promise.reject(error);
   }
 );

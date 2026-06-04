@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
+import { useNotifications } from './NotificationContext';
 
 const TaskContext = createContext();
 
@@ -43,11 +44,13 @@ const mapApiTaskToUi = (task) => {
     duration: task.duration_minutes,
     priority: priorityLabel,
     priorityLabel,
+    reminderMinutes: task.reminder_minutes || '',
   };
 };
 
 export const TaskProvider = ({ children }) => {
   const { user } = useAuth();
+  const { fetchNotifications } = useNotifications();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -91,11 +94,13 @@ export const TaskProvider = ({ children }) => {
       duration_minutes: taskData.duration,
       deadline: deadline,
       status: 'pending',
+      reminder_minutes: taskData.reminderMinutes || null,
     };
 
     const response = await api.post('/tasks', payload);
     const newTask = mapApiTaskToUi(response.data);
     setTasks(prev => [...prev, newTask]);
+    await fetchNotifications();
     return newTask;
   };
 
@@ -105,6 +110,7 @@ export const TaskProvider = ({ children }) => {
       description: updates.description || '',
       priority: toPriorityValue(updates.priority),
       duration_minutes: updates.duration,
+      reminder_minutes: updates.reminderMinutes || null,
     };
 
     if (updates.dueDate) {
@@ -117,12 +123,14 @@ export const TaskProvider = ({ children }) => {
     setTasks(prev => prev.map(t =>
       t.id === id ? { ...t, ...updatedTask } : t
     ));
+    await fetchNotifications();
     return updatedTask;
   };
 
   const deleteTask = async (id) => {
     await api.delete(`/tasks/${id}`);
     setTasks(prev => prev.filter(t => t.id !== id));
+    await fetchNotifications();
   };
 
   const toggleComplete = async (id, completed) => {
@@ -135,21 +143,7 @@ export const TaskProvider = ({ children }) => {
     setTasks(prev => prev.map(t =>
       t.id === id ? { ...t, ...updatedTask } : t
     ));
-  };
-
-  // Single task auto-schedule (kept for backward compatibility)
-  const autoScheduleTask = async (id) => {
-    try {
-      const response = await api.post(`/tasks/${id}/auto-schedule`);
-      await fetchTasks();
-      return response.data;
-    } catch (err) {
-      const message =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        'فشلت الجدولة التلقائية';
-      throw new Error(message);
-    }
+    await fetchNotifications();
   };
 
   // Schedule ALL pending tasks at once (weight-ordered)
@@ -157,11 +151,11 @@ export const TaskProvider = ({ children }) => {
     try {
       const response = await api.post('/tasks/auto-schedule-all');
       await fetchTasks();
+      await fetchNotifications();
       return response.data;   // { success, results }
     } catch (err) {
       // Return structured error so the UI can handle it
       if (err.response) {
-        // Server responded with error status
         const errorData = err.response.data;
         return {
           success: false,
@@ -184,8 +178,6 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  
-
   const value = {
     tasks,
     loading,
@@ -194,8 +186,8 @@ export const TaskProvider = ({ children }) => {
     updateTask,
     deleteTask,
     toggleComplete,
-    autoScheduleTask,        // single task
-    autoScheduleAllTasks,    // all tasks (weight-ordered)
+    autoScheduleAllTasks,
+    fetchTasks,
   };
 
   return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;

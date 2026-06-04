@@ -1,10 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
+import Timeline, { getWeekDates, formatDateKey } from '../components/Timeline/Timeline';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAYS_ARABIC = { Monday: 'الإثنين', Tuesday: 'الثلاثاء', Wednesday: 'الأربعاء', Thursday: 'الخميس', Friday: 'الجمعة', Saturday: 'السبت', Sunday: 'الأحد' };
+const DAY_INDEX_MAP = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
 
 const toDateValue = (value) => (typeof value === 'string' ? value.slice(0, 10) : '');
+
+const parseLocalDate = (value) => {
+  if (!value) return null;
+  const s = typeof value === 'string' ? value.slice(0, 10) : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
 const toTimeValue = (value) => (typeof value === 'string' ? value.slice(0, 5) : '');
 
 const getApiErrorMessage = (error) => {
@@ -27,6 +38,7 @@ const UniversitySchedule = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ title: '', day_of_week: 'Monday', start_time: '09:00', end_time: '10:00', valid_from: '', valid_until: '' });
+  const [view, setView] = useState('list');
 
   useEffect(() => {
     let active = true;
@@ -45,6 +57,27 @@ const UniversitySchedule = () => {
       });
     return () => { active = false; };
   }, []);
+
+  const weekTimelineItems = useMemo(() => {
+    const weekDates = getWeekDates(new Date());
+    const items = [];
+    schedules.forEach(s => {
+      weekDates.forEach(dayDate => {
+        if (dayDate.getDay() !== DAY_INDEX_MAP[s.day_of_week]) return;
+        const dateKey = formatDateKey(dayDate);
+        if (s.valid_from && dateKey < formatDateKey(parseLocalDate(s.valid_from))) return;
+        if (s.valid_until && dateKey > formatDateKey(parseLocalDate(s.valid_until))) return;
+        items.push({
+          id: `uni-${s.id}`,
+          task: { title: s.title },
+          start_time: `${dateKey}T${s.start_time}`,
+          end_time: `${dateKey}T${s.end_time}`,
+          task_id: s.id,
+        });
+      });
+    });
+    return items;
+  }, [schedules]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,7 +120,7 @@ const UniversitySchedule = () => {
 
   const handleEdit = (s) => {
     setError('');
-    setSuccess(''); 
+    setSuccess('');
     setEditingId(s.id);
     setFormData({
       title: s.title,
@@ -104,39 +137,18 @@ const UniversitySchedule = () => {
     setFormData({ title: '', day_of_week: 'Monday', start_time: '09:00', end_time: '10:00', valid_from: '', valid_until: '' });
     setEditingId(null);
     setShowForm(false);
-    // Note: We don't clear success/error here to allow messages to persist after form close
   };
 
   if (loading) return <div className="card">جاري التحميل...</div>;
 
   return (
     <div>
-      {/* Error message display */}
       {error && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          borderRadius: '0.5rem',
-          background: '#fee2e2',
-          color: '#b91c1c',
-          marginBottom: '1rem'
-        }}>
-          {error}
-        </div>
+        <div className="toast toast-error" style={{ marginTop: '1rem' }}>{error}</div>
       )}
-      
-      {/* Success message display */}
+
       {success && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          borderRadius: '0.5rem',
-          background: '#dcfce7',
-          color: '#166534',
-          marginBottom: '1rem'
-        }}>
-          {success}
-        </div>
+        <div className="toast toast-success" style={{ marginTop: '1rem' }}>{success}</div>
       )}
 
       <div className="card">
@@ -161,42 +173,46 @@ const UniversitySchedule = () => {
           </form>
         )}
       </div>
+
       <div className="card">
-        <h3 className="card-title">📋 المحاضرات المسجلة</h3>
-        {schedules.length === 0 ? <p>لا توجد محاضرات مسجلة.</p> : (
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {schedules.map(s => (
-              <li key={s.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'space-between' }}>
-                <div><strong>{s.title}</strong><div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>{DAYS_ARABIC[s.day_of_week]} | {toTimeValue(s.start_time)} - {toTimeValue(s.end_time)}<br />{toDateValue(s.valid_from)} {s.valid_until && `إلى ${toDateValue(s.valid_until)}`}</div></div>
-                <div><button onClick={() => handleEdit(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.5rem' }}>✏️</button><button onClick={() => handleDelete(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'red' }}>🗑️</button></div>
-              </li>
-            ))}
-          </ul>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 className="card-title">📋 المحاضرات المسجلة</h3>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              className={`btn ${view === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setView('list')}
+            >قائمة</button>
+            <button
+              className={`btn ${view === 'timeline' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setView('timeline')}
+            >جدول زمني</button>
+          </div>
+        </div>
+        {view === 'list' ? (
+          schedules.length === 0 ? <p>لا توجد محاضرات مسجلة.</p> : (
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {schedules.map(s => (
+                <li key={s.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'space-between' }}>
+                  <div><strong>{s.title}</strong><div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>{DAYS_ARABIC[s.day_of_week]} | {toTimeValue(s.start_time)} - {toTimeValue(s.end_time)}<br />{toDateValue(s.valid_from)} {s.valid_until && `إلى ${toDateValue(s.valid_until)}`}</div></div>
+                  <div><button onClick={() => handleEdit(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', marginRight: '0.5rem' }}>✏️</button><button onClick={() => handleDelete(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>🗑️</button></div>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : (
+          weekTimelineItems.length === 0 ? (
+            <p>لا توجد محاضرات في هذا الأسبوع.</p>
+          ) : (
+            <Timeline slots={weekTimelineItems} view="week" selectedDate={new Date().toISOString().slice(0, 10)} />
+          )
         )}
       </div>
 
-      {/* Delete Messages - separate from form messages */}
       {deleteSuccess && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          borderRadius: '0.5rem',
-          background: '#fee2e2',
-          color: '#b91c1c'
-        }}>
-          {deleteSuccess}
-        </div>
+        <div className="toast toast-error">{deleteSuccess}</div>
       )}
       {deleteError && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          borderRadius: '0.5rem',
-          background: '#fee2e2',
-          color: '#b91c1c'
-        }}>
-          {deleteError}
-        </div>
+        <div className="toast toast-error">{deleteError}</div>
       )}
     </div>
   );

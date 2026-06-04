@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTasks } from '../contexts/TaskContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 const getLocalDateValue = (date = new Date()) => {
@@ -12,7 +13,6 @@ const parseDateOnly = (value) => {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;
   }
-
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day);
 };
@@ -37,8 +37,8 @@ const Dashboard = () => {
   const completionRate = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   const pieData = [
-    { name: 'مكتملة', value: completed, color: '#10b981' },
-    { name: 'متبقية', value: pending, color: '#f59e0b' },
+    { name: 'مكتملة', value: completed, color: 'var(--secondary)' },
+    { name: 'متبقية', value: pending, color: 'var(--warning)' },
   ];
 
   const getWeekdayTasksCount = () => {
@@ -47,11 +47,7 @@ const Dashboard = () => {
     tasks.forEach(task => {
       if (task.dueDate) {
         const date = parseDateOnly(task.dueDate);
-
-        if (!date) {
-          return;
-        }
-
+        if (!date) return;
         const weekdayIndex = date.getDay();
         if (weekdayIndex >= 0 && weekdayIndex < 7) {
           counts[weekdayIndex].count += 1;
@@ -67,14 +63,14 @@ const Dashboard = () => {
   const displayName = user?.name || user?.email?.split('@')[0] || 'مستخدم';
 
   const getPriorityColor = (priority) => {
-    const colors = { 'عالية': '#ef4444', 'متوسطة': '#f59e0b', 'منخفضة': '#10b981' };
-    return colors[priority] || '#6b7280';
+    const colors = { 'عالية': 'var(--danger)', 'متوسطة': 'var(--warning)', 'منخفضة': 'var(--secondary)' };
+    return colors[priority] || 'var(--gray-600)';
   };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary), #4f46e5)', color: 'white', flex: 1, marginBottom: 0 }}>
+        <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', flex: 1, marginBottom: 0 }}>
           <h3 style={{ color: 'white', marginBottom: '0.25rem' }}>👋 مرحباً, {displayName}!</h3>
           <p style={{ opacity: 0.9, margin: 0 }}>هذه هي لوحة التحكم الخاصة بك. تابع تقدم مهامك وحلل إنتاجيتك.</p>
         </div>
@@ -93,8 +89,9 @@ const Dashboard = () => {
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
                 {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
               </Pie>
-              <Tooltip formatter={(value) => `${value} مهمة`} />
-              <Legend verticalAlign="bottom" height={36} />
+              <Tooltip formatter={(value) => `${value} مهمة`}
+                contentStyle={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: 'var(--text)' }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="stat-value" style={{ fontSize: '1.8rem', marginTop: '0.5rem' }}>{completionRate}%</div>
@@ -106,9 +103,10 @@ const Dashboard = () => {
         <h3 className="card-title">📊 توزيع المهام حسب أيام الأسبوع</h3>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <XAxis dataKey="day" />
-            <YAxis allowDecimals={false} />
-            <Tooltip formatter={(value) => `${value} مهمة`} />
+            <XAxis dataKey="day" tick={{ fill: 'var(--text)' }} />
+            <YAxis allowDecimals={false} tick={{ fill: 'var(--text)' }} />
+            <Tooltip formatter={(value) => `${value} مهمة`}
+              contentStyle={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
             <Bar dataKey="count" fill="var(--primary)" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -116,7 +114,7 @@ const Dashboard = () => {
 
       <div className="card">
         <h3 className="card-title">📋 مهام اليوم</h3>
-        {loading ? <p>جاري التحميل...</p> : todayTasks.length === 0 ? (
+        {loading ? <LoadingSpinner message="جاري تحميل المهام..." /> : todayTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <span style={{ fontSize: '3rem' }}>🎉</span>
             <p>لا توجد مهام محددة لهذا اليوم. استمتع بيومك!</p>
@@ -146,7 +144,7 @@ const Dashboard = () => {
                       justifyContent: 'center',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                      boxShadow: 'var(--shadow-sm)',
                       minWidth: '70px'
                     }}>
                       {task.priorityLabel}

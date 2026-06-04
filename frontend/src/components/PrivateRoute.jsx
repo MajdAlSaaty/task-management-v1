@@ -9,7 +9,15 @@ const PrivateRoute = () => {
     return <LoadingSpinner />;
   }
 
-  return user ? <Outlet /> : <Navigate to="/auth" replace />;
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!user.email_verified_at) {
+    return <Navigate to="/auth?verify=1" replace />;
+  }
+
+  return <Outlet />;
 };
 
 export default PrivateRoute;
